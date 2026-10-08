@@ -1,0 +1,97 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trebumath - trebuchet design without the folklore</title>
+<style>
+:root{--br:#6b3d10;--ink:#1d1d24;--mut:#5a5a66;--card:#f6f6f9;--ok:#0c7a3d;--bad:#b02020}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:#fff}
+header{padding:28px 20px 8px;max-width:1100px;margin:0 auto}
+h1{font-size:28px;margin:0}h1 span{color:var(--br)}
+.sub{color:var(--mut);max-width:660px;margin-top:8px;line-height:1.45}
+main{max-width:1100px;margin:24px auto;padding:0 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--card);border-radius:14px;padding:18px}
+.card h2{margin:0 0 12px;font-size:18px}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+input{width:100%;padding:9px 10px;border:1px solid #d5d5de;border-radius:8px;font-size:15px;background:#fff}
+button{margin-top:14px;width:100%;padding:11px;border:0;border-radius:9px;background:var(--br);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+.big{font-size:34px;font-weight:700;margin:14px 0 2px}
+.cap{font-size:13px;color:var(--mut)}
+.pill{display:inline-block;margin-top:10px;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:600}
+.pill.ok{background:#e2f4e8;color:var(--ok)}.pill.bad{background:#fbe3e3;color:var(--bad)}.pill.note{background:#e8ecf8;color:#2b3f8f}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+td{padding:7px 0;border-bottom:1px solid #e3e3ea}td+td{text-align:right;font-weight:600}
+.err{color:var(--bad);font-size:14px;margin-top:10px;min-height:1em}
+.note{font-size:12.5px;color:var(--mut);margin-top:10px;line-height:1.4}
+</style></head><body>
+<header><h1>Trebu<span>math</span></h1>
+<p class="sub">Everyone obsesses over arm length. The physics says the counterweight drop and build efficiency decide the range. Enter the machine; get the exit speed, the range, and the honest verdict on your ratios.</p></header>
+<main>
+<section class="card"><h2>Range</h2>
+<label>Counterweight (kg)</label><input id="r_cw" type="number" step="1" value="50">
+<label>Projectile (g, pumpkin ~2,000)</label><input id="r_pg" type="number" step="50" value="1000">
+<label>Counterweight drop (m, pivot height)</label><input id="r_dm" type="number" step="0.1" value="2">
+<label>Build efficiency (%, real builds 20-60)</label><input id="r_ef" type="number" step="1" value="35">
+<label>Release angle (degrees)</label><input id="r_ra" type="number" step="1" value="45">
+<button id="r_go">Loose the sling</button>
+<div class="err" id="r_err"></div>
+<div class="big" id="r_big">-</div><div class="cap">estimated range</div>
+<div id="r_pill"></div>
+<table id="r_rows"></table>
+<p class="note">Labeled model: counterweight potential energy reaches the projectile with a build-efficiency factor, then textbook projectile flight. No air drag (dense projectiles), flat field.</p></section>
+
+<section class="card"><h2>Counterweight ratio</h2>
+<label>Counterweight (kg)</label><input id="c_cw" type="number" step="1" value="50">
+<label>Projectile (g)</label><input id="c_pg" type="number" step="50" value="1000">
+<button id="c_go">Check the ratio</button>
+<div class="err" id="c_err"></div>
+<div class="big" id="c_big">-</div><div class="cap">counterweight to projectile</div>
+<div id="c_pill"></div>
+<table id="c_rows"></table>
+<p class="note">Labeled guidance: under 20:1 the drop never reaches the arm; competition builds run 100:1 and up.</p></section>
+
+<section class="card"><h2>Sloppiness price</h2>
+<label>Current efficiency (%)</label><input id="e_n" type="number" step="1" value="20">
+<label>After tuning (%)</label><input id="e_b" type="number" step="1" value="50">
+<button id="e_go">Price the slop</button>
+<div class="err" id="e_err"></div>
+<div class="big" id="e_big">-</div><div class="cap">meters gained by tuning</div>
+<div id="e_pill"></div>
+<table id="e_rows"></table>
+<p class="note">Efficiency is where range is won: friction at the axle, sling timing, release pin. Range scales linearly with efficiency - tuning beats rebuilding.</p></section>
+
+<section class="card"><h2>Geometry</h2>
+<label>Arm, throwing end (mm)</label><input id="a_lo" type="number" step="50" value="2000">
+<label>Arm, counterweight end (mm)</label><input id="a_sh" type="number" step="50" value="600">
+<label>Sling length (mm)</label><input id="a_sl" type="number" step="50" value="1800">
+<button id="a_go">Check the geometry</button>
+<div class="err" id="a_err"></div>
+<div class="big" id="a_big">-</div><div class="cap">arm ratio (throwing : weight)</div>
+<div id="a_pill"></div>
+<table id="a_rows"></table>
+<p class="note">Labeled guidance: arm ratio 3:1-4:1, sling about 0.8-1.0x the throwing arm. Outside the pocket the whip mistimes.</p></section>
+</main>
+<script src="engine.js?v=1"></script>
+<script>
+const $=id=>document.getElementById(id);
+const run=(eid,fn,draw)=>{const e=$(eid);try{e.textContent='';draw(fn());}catch(err){e.textContent=err.message;}};
+const row=(k,v)=>`<tr><td>${k}</td><td>${v}</td></tr>`;
+const pill=(id,cls,txt)=>{$(id).innerHTML=`<span class="pill ${cls}">${txt}</span>`;};
+function rIn(){return [+$('r_cw').value,+$('r_pg').value,+$('r_dm').value,+$('r_ef').value,+$('r_ra').value];}
+function rGo(){run('r_err',()=>Trebumath.range(...rIn()),r=>{
+  $('r_big').textContent=r.rangeM.toFixed(0)+' m';
+  pill('r_pill',r.rangeM<15?'bad':(r.rangeM<60?'note':'ok'),r.rangeM<15?'popsicle-stick range':(r.rangeM<60?'respectable backyard throw':'pumpkin-chuck territory'));
+  $('r_rows').innerHTML=row('exit speed',r.exitMps.toFixed(1)+' m/s')+row('energy to the projectile',r.energyJ.toFixed(0)+' J')+row('apex',r.apexM.toFixed(1)+' m')+row('flight time',r.flightS.toFixed(1)+' s');});}
+function cGo(){run('c_err',()=>Trebumath.ratioCheck(+$('c_cw').value,+$('c_pg').value),r=>{
+  $('c_big').textContent=r.ratio.toFixed(0)+':1';
+  pill('c_pill',r.ratio<20?'bad':(r.ratio<100?'note':'ok'),r.verdict);
+  $('c_rows').innerHTML=row('counterweight',(+$('c_cw').value).toFixed(0)+' kg')+row('projectile',(+$('c_pg').value).toFixed(0)+' g');});}
+function eGo(){run('e_err',()=>{const a=rIn();return Trebumath.effPrice(a[0],a[1],a[2],a[4],+$('e_n').value,+$('e_b').value);},r=>{
+  $('e_big').textContent='+'+r.gainM.toFixed(0)+' m';
+  pill('e_pill',r.gainPct>50?'ok':'note',r.gainPct.toFixed(0)+'% more range from tuning');
+  $('e_rows').innerHTML=row('range today',r.nowM.toFixed(0)+' m')+row('range tuned',r.betterM.toFixed(0)+' m');});}
+function aGo(){run('a_err',()=>Trebumath.armCheck(+$('a_lo').value,+$('a_sh').value,+$('a_sl').value),r=>{
+  $('a_big').textContent=r.armRatio.toFixed(1)+':1';
+  pill('a_pill',(r.armRatio>=2.5&&r.armRatio<=4.5)?'ok':'note',r.armVerdict);
+  $('a_rows').innerHTML=row('sling : throwing arm',r.slingRatio.toFixed(2)) +row('sling verdict',r.slingVerdict);});}
+$('r_go').onclick=rGo;$('c_go').onclick=cGo;$('e_go').onclick=eGo;$('a_go').onclick=aGo;
+rGo();cGo();eGo();aGo();
+</script></body></html>
